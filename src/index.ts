@@ -1,6 +1,3 @@
-import { sleep } from "bun";
+import log from "./utils/log";
 
-while (true) {
-  console.log("Hello via1 Bun!");
-  sleep(1);
-}
+log.debug("test debug");

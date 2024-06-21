@@ -23,5 +23,8 @@
     "compile-windows-baseline": "bun build src/index.ts --compile --target bun-windows-x64-baseline --outfile ./build/windows-baseline --minify",
     "compile-macos-arm": "bun build src/index.ts --compile --target bun-darwin-arm64 --outfile ./build/macos-arm64 --minify --sourcemap",
     "compile-macos-x64": "bun build src/index.ts --compile --target bun-darwin-x64 --outfile ./build/macos-x64 --minify --sourcemap"
+  },
+  "dependencies": {
+    "pino": "^9.2.0"
   }
 }
