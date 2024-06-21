@@ -9,7 +9,7 @@ type Status = {
 
 export type Matcher<T extends keyof Status> = (s: NonNullable<Status[T]>) => boolean;
 
-export type ContextMap = Record<string, unknown>;
+export type ContextMap = Readonly<Record<string, unknown>>;
 
 export type StatusMatcher = {
   [key in keyof Status]: Matcher<key>;
@@ -49,6 +49,8 @@ export class ContextManager {
       // sort by match_rule length decrementing, to allow more complex ctx return first
       .toSorted((a, b) => matcherComplexity(b.match_rules) - matcherComplexity(a.match_rules));
 
+    // only allow read, write is forbidden
+    // if write is needed, use object, or wrap primitive type in object to be referenced
     return new Proxy({} as ContextMap, {
       get: (_, prop, __) => {
         for (const ctx of ctx_sequence) {
@@ -57,15 +59,6 @@ export class ContextManager {
           }
         }
         return undefined;
-      },
-      set: (_, prop, value, __) => {
-        for (const ctx of ctx_sequence) {
-          if (prop in ctx.data) {
-            ctx.data[prop as string] = value;
-            return true;
-          }
-        }
-        return false;
       },
     });
   };
