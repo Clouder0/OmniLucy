@@ -9,7 +9,7 @@ type Status = {
 
 export type Matcher<T extends keyof Status> = (s: NonNullable<Status[T]>) => boolean;
 
-export type ContextMap = Readonly<Record<string, unknown>>;
+export type ContextMap = Record<string, unknown>;
 
 export type StatusMatcher = {
   [key in keyof Status]: Matcher<key>;
@@ -44,13 +44,20 @@ export class ContextManager {
     this.ctxs.push(ctx);
   };
 
-  getContext = (s: Status): ContextMap => {
+  // get Context will return snapshot by default, this means all primitive types will be copied
+  getContext = (s: Status): Readonly<ContextMap> => {
+    return this.ctxs.filter((x) => x.check(s)) // filter all context that matches
+      // sort by match_rule length incrementing, to allow more complex ctx overriding previous ctx
+      .toSorted((a, b) => matcherComplexity(a.match_rules) - matcherComplexity(b.match_rules))
+      .map((x) => x.data).reduce((acc, x) => (Object.assign(acc, x)), {} as ContextMap);
+  };
+
+  getContextProxy = (s: Status): ContextMap => {
     const ctx_sequence = this.ctxs.filter((x) => x.check(s)) // filter all context that matches
       // sort by match_rule length decrementing, to allow more complex ctx return first
       .toSorted((a, b) => matcherComplexity(b.match_rules) - matcherComplexity(a.match_rules));
 
-    // only allow read, write is forbidden
-    // if write is needed, use object, or wrap primitive type in object to be referenced
+    // read/write will directly affect the target context, so everything will be in realtime
     return new Proxy({} as ContextMap, {
       get: (_, prop, __) => {
         for (const ctx of ctx_sequence) {
@@ -59,6 +66,15 @@ export class ContextManager {
           }
         }
         return undefined;
+      },
+      set: (_, prop, value, __) => {
+        for (const ctx of ctx_sequence) {
+          if (prop in ctx.data) {
+            ctx.data[prop as string] = value;
+            return true;
+          }
+        }
+        return false;
       },
     });
   };

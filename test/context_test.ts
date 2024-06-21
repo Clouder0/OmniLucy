@@ -57,9 +57,9 @@ describe("ContextManager", () => {
     expect(res2.a).toBeUndefined();
   });
 
-  it("Multiple Context with override", () => {
+  it("Multiple Context with override, using snapshot and wrapper", () => {
     const manager = new ContextManager();
-    const ctx = new Context({ user: (s) => s === "123" }, { a: new Wrapper(1), b: new Wrapper(2) });
+    const ctx = new Context({ user: (s) => s === "123" }, { a: new Wrapper(1), b: new Wrapper(2), d: 4 });
     const ctx2 = new Context({ user: (s) => s === "123", channel: (s) => s === "123" }, {
       a: new Wrapper(2),
       c: new Wrapper(3),
@@ -69,6 +69,7 @@ describe("ContextManager", () => {
     const res = manager.getContext({ user: "123" });
     expect(res.a).toHaveProperty("value", 1);
     expect(res.b).toHaveProperty("value", 2);
+    expect(res.d).toBe(4);
     const res2 = manager.getContext({ user: "123", channel: "123" });
     expect(res2.a).toHaveProperty("value", 2);
     expect(res2.b).toHaveProperty("value", 2);
@@ -88,5 +89,39 @@ describe("ContextManager", () => {
     expect(ctx2.data.a).toHaveProperty("value", 5);
     expect(ctx2.data.c).toHaveProperty("value", 6);
     expect(ctx.data.a).toHaveProperty("value", 3);
+  });
+
+  it("Multiple Context with override, using proxy", () => {
+    const manager = new ContextManager();
+    const ctx = new Context({ user: (s) => s === "123" }, { a: 1, b: 2 });
+    const ctx2 = new Context({ user: (s) => s === "123", channel: (s) => s === "123" }, {
+      a: 2,
+      c: 3,
+    });
+    manager.addContext(ctx2);
+    manager.addContext(ctx);
+    const res = manager.getContextProxy({ user: "123" });
+    expect(res.a).toBe(1);
+    expect(res.b).toBe(2);
+    const res2 = manager.getContextProxy({ user: "123", channel: "123" });
+    expect(res2.a).toBe(2);
+    expect(res2.b).toBe(2);
+    expect(res2.c).toBe(3);
+    const res3 = manager.getContextProxy({ user: "123", channel: "456" });
+    expect(res3.a).toBe(1);
+    expect(res3.b).toBe(2);
+
+    // test writes
+
+    res3.a = 3; // should write to ctx
+    expect(res3.a).toBe(3);
+    expect(ctx.data.a).toBe(3);
+    expect(res.a).toBe(3);
+    res2.b = 4; // should write to ctx
+    res2.a = 5; // should write to ctx2
+    res2.c = 6; // should write to ctx2
+    expect(ctx2.data.a).toBe(5);
+    expect(ctx2.data.c).toBe(6);
+    expect(ctx.data.a).toBe(3);
   });
 });
