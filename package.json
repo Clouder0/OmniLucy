@@ -1,0 +1,27 @@
+{
+  "name": "omnilucy",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest",
+    "dprint": "^0.46.3"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "NODE_ENV=production bun src/index.ts",
+    "test": "bun test",
+    "format": "bunx dprint fmt",
+    "check": "bunx dprint check",
+    "compile": "bun build src/index.ts --compile --target bun --outfile ./build/out --minify --sourcemap",
+    "compile-linux-modern": "bun build src/index.ts --compile --target bun-linux-x64-modern --outfile ./build/linux-x86-modern --minify --sourcemap",
+    "compile-linux-baseline": "bun build src/index.ts --compile --target bun-linux-x64-baseline --outfile ./build/linux-x86-baseline --minify --sourcemap",
+    "compile-linux-arm": "bun build src/index.ts --compile --target bun-linux-arm64 --outfile ./build/linux-arm64 --minify --sourcemap",
+    "compile-windows-modern": "bun build src/index.ts --compile --target bun-windows-x64-modern --outfile ./build/winwdows-modern --minify --sourcemap",
+    "compile-windows-baseline": "bun build src/index.ts --compile --target bun-windows-x64-baseline --outfile ./build/windows-baseline --minify",
+    "compile-macos-arm": "bun build src/index.ts --compile --target bun-darwin-arm64 --outfile ./build/macos-arm64 --minify --sourcemap",
+    "compile-macos-x64": "bun build src/index.ts --compile --target bun-darwin-x64 --outfile ./build/macos-x64 --minify --sourcemap"
+  }
+}
