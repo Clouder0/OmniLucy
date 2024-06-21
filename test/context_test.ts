@@ -1,5 +1,5 @@
 import { describe, expect, it, test } from "bun:test";
-import { Context, ContextManager } from "../src/context/context";
+import { Context, ContextManager } from "../src/context";
 import log from "../src/utils/log";
 import { Wrapper } from "../src/utils/misc";
 

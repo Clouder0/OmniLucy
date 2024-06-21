@@ -1,5 +1,5 @@
-import log from "../utils/log";
-import { objectEntries, objectKeys } from "../utils/typed";
+import log from "./utils/log";
+import { objectEntries, objectKeys } from "./utils/typed";
 
 type Status = {
   user?: string;
@@ -45,6 +45,7 @@ export class ContextManager {
   };
 
   // get Context will return snapshot by default, this means all primitive types will be copied
+  // sometimes it will be expensive to copy all data, so use with caution. You can get Proxy instead
   getContext = (s: Status): Readonly<ContextMap> => {
     return this.ctxs.filter((x) => x.check(s)) // filter all context that matches
       // sort by match_rule length incrementing, to allow more complex ctx overriding previous ctx
