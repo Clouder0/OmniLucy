@@ -1,5 +1,5 @@
 import { describe, expect, it, test } from "bun:test";
-import { Context, ctx_manager } from "../src/context/context";
+import { Context, ContextManager } from "../src/context/context";
 
 describe("Matcher", () => {
   it("Null Matcher", () => {
@@ -47,27 +47,41 @@ describe("Matcher", () => {
 describe("ContextManager", () => {
   it("Single Context", () => {
     const ctx = new Context({ user: (s) => s === "123" }, { a: 1 });
-    ctx_manager.addContext(ctx);
-    const res = ctx_manager.getContext({ user: "123" });
+    const manager = new ContextManager();
+    manager.addContext(ctx);
+    const res = manager.getContext({ user: "123" });
     expect(res.a).toBe(1);
-    const res2 = ctx_manager.getContext({ user: "456" });
+    const res2 = manager.getContext({ user: "456" });
     expect(res2.a).toBeUndefined();
   });
 
   it("Multiple Context with override", () => {
+    const manager = new ContextManager();
     const ctx = new Context({ user: (s) => s === "123" }, { a: 1, b: 2 });
     const ctx2 = new Context({ user: (s) => s === "123", channel: (s) => s === "123" }, { a: 2, c: 3 });
-    ctx_manager.addContext(ctx2);
-    ctx_manager.addContext(ctx);
-    const res = ctx_manager.getContext({ user: "123" });
+    manager.addContext(ctx2);
+    manager.addContext(ctx);
+    const res = manager.getContext({ user: "123" });
     expect(res.a).toBe(1);
     expect(res.b).toBe(2);
-    const res2 = ctx_manager.getContext({ user: "123", channel: "123" });
+    const res2 = manager.getContext({ user: "123", channel: "123" });
     expect(res2.a).toBe(2);
     expect(res2.b).toBe(2);
     expect(res2.c).toBe(3);
-    const res3 = ctx_manager.getContext({ user: "123", channel: "456" });
+    const res3 = manager.getContext({ user: "123", channel: "456" });
     expect(res3.a).toBe(1);
     expect(res3.b).toBe(2);
+
+    // test writes
+    res3.a = 3; // should write to ctx
+    expect(res3.a).toBe(3);
+    expect(ctx.data.a).toBe(3);
+    expect(res.a).toBe(3);
+    res2.b = 4; // should write to ctx
+    res2.a = 5; // should write to ctx2
+    res2.c = 6; // should write to ctx2
+    expect(ctx2.data.a).toBe(5);
+    expect(ctx2.data.c).toBe(6);
+    expect(ctx.data.b).toBe(4);
   });
 });

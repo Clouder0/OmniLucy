@@ -45,10 +45,29 @@ export class ContextManager {
   };
 
   getContext = (s: Status): ContextMap => {
-    return this.ctxs.filter((x) => x.check(s)) // filter all context that matches
-      // sort by match_rule length incrementing, to allow more complex ctx override previous ctx
-      .toSorted((a, b) => matcherComplexity(a.match_rules) - matcherComplexity(b.match_rules))
-      .map((x) => x.data).reduce((prev, now) => Object.assign(prev, now), {}); // reduce to one single final ContextMap
+    const ctx_sequence = this.ctxs.filter((x) => x.check(s)) // filter all context that matches
+      // sort by match_rule length decrementing, to allow more complex ctx return first
+      .toSorted((a, b) => matcherComplexity(b.match_rules) - matcherComplexity(a.match_rules));
+
+    return new Proxy({} as ContextMap, {
+      get: (_, prop, __) => {
+        for (const ctx of ctx_sequence) {
+          if (prop in ctx.data) {
+            return ctx.data[prop as string];
+          }
+        }
+        return undefined;
+      },
+      set: (_, prop, value, __) => {
+        for (const ctx of ctx_sequence) {
+          if (prop in ctx.data) {
+            ctx.data[prop as string] = value;
+            return true;
+          }
+        }
+        return false;
+      },
+    });
   };
 }
 
