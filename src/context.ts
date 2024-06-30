@@ -1,7 +1,7 @@
 import log from "./utils/log";
 import { objectEntries, objectKeys } from "./utils/typed";
 
-type Status = {
+export type Status = {
   user?: string;
   channel?: string;
   conversation?: string;
@@ -42,6 +42,10 @@ export class ContextManager {
 
   addContext = <T extends ContextMap>(ctx: Context<T>) => {
     this.ctxs.push(ctx);
+  };
+
+  removeContext = <T extends ContextMap>(ctx: Context<T>) => {
+    this.ctxs = this.ctxs.filter((x) => x !== ctx);
   };
 
   // get Context will return snapshot by default, this means all primitive types will be copied

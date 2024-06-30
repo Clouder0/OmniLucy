@@ -1,86 +1,78 @@
-export type Text = string;
-export type Image = number; // TODO: make an image class actually, supporting different formats, now it's a placeholder
-export type Element = Text | Image;
-export type HyperBlock = Element[];
-export type HyperSegment = Text | Image | HyperBlock;
-export type HyperText = HyperSegment[];
+import { z } from "zod";
 
-export type Input = Text | Image | HyperText;
-export type HyperBlockCapability = {
-  text?: boolean;
-  image?: boolean;
+const text = z.string();
+const image = z.number(); // mock
+
+// one hyper text has multiple blocks, one block has multiple elements
+
+const hyperElementCapability = z.strictObject({
+  text: z.boolean().optional(),
+  image: z.boolean().optional(),
+});
+type HyperElementCapability = z.infer<typeof hyperElementCapability>;
+const hyperElementFromCapability = <T extends Readonly<HyperElementCapability>>(capability: T) => {
+  return (capability.text ? text : z.never()).or(capability.image ? image : z.never());
 };
 
-export type HyperTextCapability = {
-  text?: boolean;
-  image?: boolean;
-  hyperBlock?: HyperBlockCapability;
+const hyperBlockCapability = z.strictObject({
+  text: z.boolean().optional(),
+  image: z.boolean().optional(),
+  hyperElement: hyperElementCapability.optional(),
+});
+type HyperBlockCapability = z.infer<typeof hyperBlockCapability>;
+const hyperBlockFromCapability = <T extends Readonly<HyperBlockCapability>>(capability: T) => {
+  return (capability.text ? text : z.never()).or(capability.image ? image : z.never()).or(
+    capability.hyperElement ? z.array(hyperElementFromCapability(capability.hyperElement)) : z.never(),
+  );
 };
 
-export type HyperBlockFromCapability<T extends HyperBlockCapability> =
-  | (T extends { text: true } ? Text : never)
-  | (T extends { image: true } ? Image : never);
-
-export type HyperSegmentFromCapability<T extends HyperTextCapability> =
-  | (T extends { text: true } ? Text : never)
-  | (T extends { image: true } ? Image : never)
-  | (T["hyperBlock"] extends HyperBlockCapability ? (HyperBlockFromCapability<T["hyperBlock"]>)[]
-    : never);
-export type HyperTextFromCapability<T extends HyperTextCapability> = HyperSegmentFromCapability<T>[];
-
-export type InputCapability = {
-  text?: boolean;
-  image?: boolean;
-  hyperText?: HyperTextCapability;
+const hyperTextCapability = hyperBlockCapability;
+type HyperTextCapability = z.infer<typeof hyperTextCapability>;
+const hyperTextFromCapability = <T extends Readonly<HyperTextCapability>>(capability: T) => {
+  return z.array(hyperBlockFromCapability(capability));
 };
 
-export type InputContentFromCapability<T extends InputCapability> =
-  | (T["text"] extends true ? Text : never)
-  | (T["image"] extends true ? Image : never)
-  | (T["hyperText"] extends HyperTextCapability ? HyperTextFromCapability<T["hyperText"]>
-    : never);
-
-export type InputFromCapability<T extends InputCapability> =
-  | (T["text"] extends true ? {
-      content_type: "text";
-      content: Text;
-    }
-    : never)
-  | (T["image"] extends true ? {
-      content_type: "image";
-      content: Image;
-    }
-    : never)
-  | (T["hyperText"] extends HyperTextCapability ? {
-      content_type: "hyperText";
-      content: HyperText & InputContentFromCapability<T>;
-    }
-    : never);
-
-export type OutputCapability = {
-  text?: boolean;
-  image?: boolean;
-  hyperText?: HyperTextCapability;
+const inputCapability = z.strictObject({
+  text: z.boolean().optional(),
+  image: z.boolean().optional(),
+  hyperText: hyperTextCapability.optional(),
+});
+export type InputCapability = z.infer<typeof inputCapability>;
+export const inputFromCapability = <T extends Readonly<InputCapability>>(capability: T) => {
+  return (capability.text ? z.strictObject({ content_type: z.literal("text"), content: text }) : z.never()).or(
+    capability.image ? z.strictObject({ content_type: z.literal("image"), content: image }) : z.never(),
+  ).or(
+    capability.hyperText
+      ? z.strictObject({ content_type: z.literal("hyperText"), content: hyperTextFromCapability(capability.hyperText) })
+      : z.never(),
+  );
 };
-export type OutputContentFromCapability<T extends OutputCapability> =
-  | (T["text"] extends true ? Text : never)
-  | (T["image"] extends true ? Image : never)
-  | (T extends ({ hyperText: HyperTextCapability }) ? HyperTextFromCapability<T["hyperText"]>
-    : never);
+export type InputFromCapability<T extends Readonly<InputCapability>> = z.infer<
+  ReturnType<typeof inputFromCapability<T>>
+>;
 
-export type OutputFromCapability<T extends OutputCapability> =
-  | (T["text"] extends true ? {
-      content_type: "text";
-      content: Text;
-    }
-    : never)
-  | (T["image"] extends true ? {
-      content_type: "image";
-      content: Image;
-    }
-    : never)
-  | (T["hyperText"] extends HyperTextCapability ? {
-      content_type: "hyperText";
-      content: HyperText & OutputContentFromCapability<T>;
-    }
-    : never);
+const outputCapability = z.strictObject({
+  text: z.boolean().optional(),
+  image: z.boolean().optional(),
+  hyperText: hyperTextCapability.optional(),
+});
+export type OutputCapability = z.infer<typeof outputCapability>;
+export const outputFromCapability = <T extends Readonly<OutputCapability>>(capability: T) => {
+  return (capability.text ? z.strictObject({ content_type: z.literal("text"), content: text }) : z.never()).or(
+    capability.image ? z.strictObject({ content_type: z.literal("image"), content: image }) : z.never(),
+  ).or(
+    capability.hyperText
+      ? z.strictObject({ content_type: z.literal("hyperText"), content: hyperTextFromCapability(capability.hyperText) })
+      : z.never(),
+  ).or(z.null());
+};
+export type OutputFromCapability<T extends Readonly<OutputCapability>> = z.infer<
+  ReturnType<typeof outputFromCapability<T>>
+>;
+
+export const verifyOutputCapability = <T extends Readonly<OutputCapability>>(
+  capability: T,
+  output: OutputFromCapability<T>,
+): boolean => {
+  return outputFromCapability(capability).safeParse(output).success;
+};
